@@ -26,10 +26,9 @@
             border-radius: 0 0 20px 20px; 
         }
         
-        .stat-card { background: white; padding: 10px 5px; border-radius: 12px; text-align: center; border: 1px solid #e2e8f0; height: 100%; transition: all 0.2s; }
-        .clickable-card { cursor: pointer; }
-        .clickable-card:hover { border-color: var(--primary); background-color: #f8faff; }
-        .clickable-card:active { transform: scale(0.95); }
+        .stat-card { background: white; padding: 10px 5px; border-radius: 12px; text-align: center; border: 1px solid #e2e8f0; height: 100%; transition: all 0.2s; cursor: pointer; }
+        .stat-card:hover { border-color: var(--primary); background-color: #f8faff; }
+        .stat-card:active { transform: scale(0.95); }
         
         .stat-value { font-size: 1rem; font-weight: 800; color: var(--primary); display: block; }
         .stat-label { font-size: 0.55rem; color: #64748b; text-transform: uppercase; font-weight: 700; }
@@ -49,7 +48,8 @@
         #loading-overlay { position: fixed; top:0; left:0; width:100%; height:100%; background:white; display:flex; align-items:center; justify-content:center; z-index:9999; }
         .login-container { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; }
         
-        .filter-info { font-size: 0.75rem; color: #2563eb; font-weight: 600; display: none; }
+        .filter-status { font-size: 0.7rem; font-weight: 700; color: #2563eb; display: none; margin-bottom: 5px; }
+        .filter-status span { cursor: pointer; text-decoration: underline; color: #64748b; margin-left: 5px; }
     </style>
 </head>
 <body>
@@ -84,32 +84,40 @@
 
         <div class="container">
             <div class="row g-2 mb-3">
-                <div class="col-3">
-                    <div class="stat-card clickable-card" onclick="filterData()">
+                <div class="col-3" onclick="applyQuickFilter('hadir')">
+                    <div class="stat-card">
                         <span class="stat-value" id="statHadir">0</span>
                         <span class="stat-label">Hadir</span>
                     </div>
                 </div>
-                <div class="col-3"><div class="stat-card"><span class="stat-value text-warning" id="statLembur">0</span><span class="stat-label">SPL</span></div></div>
-                <div class="col-3"><div class="stat-card"><span class="stat-value text-primary" id="statIndex">0</span><span class="stat-label">Index</span></div></div>
-                <div class="col-3">
-                    <div class="stat-card border-success clickable-card" onclick="filterCutiOnly()">
+                <div class="col-3" onclick="applyQuickFilter('spl')">
+                    <div class="stat-card">
+                        <span class="stat-value text-warning" id="statLembur">0</span>
+                        <span class="stat-label">SPL</span>
+                    </div>
+                </div>
+                <div class="col-3" onclick="applyQuickFilter('index')">
+                    <div class="stat-card">
+                        <span class="stat-value text-primary" id="statIndex">0</span>
+                        <span class="stat-label">Index</span>
+                    </div>
+                </div>
+                <div class="col-3" onclick="applyQuickFilter('cuti')">
+                    <div class="stat-card border-success">
                         <span class="stat-value text-success" id="statCuti">0</span>
-                        <span class="stat-label">Sisa Cuti</span>
+                        <span class="stat-label">Cuti</span>
                     </div>
                 </div>
             </div>
             
-            <div class="d-flex justify-content-between align-items-center mb-2">
-                <div id="activeFilterNote" class="filter-info"><i class="fas fa-filter me-1"></i> Menampilkan Hanya Cuti</div>
-                <div id="resetFilterBtn" class="filter-info" style="cursor:pointer;" onclick="filterData()">
-                    <u>Reset Filter</u>
-                </div>
+            <div id="filterIndicator" class="filter-status container px-1">
+                <i class="fas fa-filter"></i> Menampilkan: <b id="filterName"></b>
+                <span onclick="resetFilter()">[Reset]</span>
             </div>
 
             <div class="input-group input-group-sm">
                 <span class="input-group-text bg-white border-end-0"><i class="fas fa-calendar-alt text-muted"></i></span>
-                <select id="periodFilter" class="form-select border-start-0 fw-bold" onchange="filterData()"></select>
+                <select id="periodFilter" class="form-select border-start-0 fw-bold" onchange="resetFilter()"></select>
             </div>
         </div>
     </div>
@@ -168,46 +176,60 @@
         filterData();
     }
 
-    // Fungsi Baru: Memfilter hanya keterangan Cuti
-    function filterCutiOnly() {
+    // Fungsi Utama Filter Cepat
+    function applyQuickFilter(type) {
         const selectedPeriod = document.getElementById('periodFilter').value;
-        const filteredData = attendance.filter(a => 
-            a.token === currentUser.token && 
-            a.period === selectedPeriod && 
-            a.keterangan.toLowerCase() === 'cuti'
-        );
-        
-        // Tampilkan indikator filter aktif
-        document.getElementById('activeFilterNote').style.display = 'block';
-        document.getElementById('resetFilterBtn').style.display = 'block';
-        
-        renderContent(filteredData);
+        const baseData = attendance.filter(a => a.token === currentUser.token && a.period === selectedPeriod);
+        let filtered;
+        let label;
+
+        switch(type) {
+            case 'hadir':
+                filtered = baseData.filter(a => a.keterangan === "Masuk");
+                label = "Hadir Saja";
+                break;
+            case 'spl':
+                filtered = baseData.filter(a => (parseFloat(a[" SPL "]) || 0) > 0);
+                label = "Hari dengan SPL";
+                break;
+            case 'index':
+                filtered = baseData.filter(a => (parseFloat(a[" INDEX "]) || 0) > 0);
+                label = "Hari dengan Index";
+                break;
+            case 'cuti':
+                filtered = baseData.filter(a => a.keterangan.toLowerCase() === 'cuti');
+                label = "Hari Cuti";
+                break;
+        }
+
+        document.getElementById('filterIndicator').style.display = 'block';
+        document.getElementById('filterName').innerText = label;
+        renderContent(filtered, false); // false agar statistik atas tidak ikut berubah saat filter aktif
+    }
+
+    function resetFilter() {
+        document.getElementById('filterIndicator').style.display = 'none';
+        filterData();
     }
 
     function filterData() {
-        // Sembunyikan indikator filter
-        document.getElementById('activeFilterNote').style.display = 'none';
-        document.getElementById('resetFilterBtn').style.display = 'none';
-
         const selectedPeriod = document.getElementById('periodFilter').value;
         const filteredData = attendance.filter(a => a.token === currentUser.token && a.period === selectedPeriod);
-        renderContent(filteredData);
+        renderContent(filteredData, true);
     }
 
-    function renderContent(data) {
-        // Update statistik hanya berdasarkan periode yang dipilih (bukan hasil filter cuti saja)
-        const selectedPeriod = document.getElementById('periodFilter').value;
-        const baseData = attendance.filter(a => a.token === currentUser.token && a.period === selectedPeriod);
-
-        document.getElementById('statHadir').innerText = baseData.filter(a => a.keterangan === "Masuk").length;
-        document.getElementById('statLembur').innerText = baseData.reduce((s, i) => s + (parseFloat(i[" SPL "]) || 0), 0).toFixed(1);
-        document.getElementById('statIndex').innerText = baseData.reduce((s, i) => s + (parseFloat(i[" INDEX "]) || 0), 0).toFixed(1);
+    function renderContent(data, updateStats) {
+        if(updateStats) {
+            document.getElementById('statHadir').innerText = data.filter(a => a.keterangan === "Masuk").length;
+            document.getElementById('statLembur').innerText = data.reduce((s, i) => s + (parseFloat(i[" SPL "]) || 0), 0).toFixed(1);
+            document.getElementById('statIndex').innerText = data.reduce((s, i) => s + (parseFloat(i[" INDEX "]) || 0), 0).toFixed(1);
+        }
 
         const list = document.getElementById('attendanceList');
         list.innerHTML = '';
         
         if (data.length === 0) {
-            list.innerHTML = '<div class="text-center text-muted mt-5">Tidak ada data ditemukan</div>';
+            list.innerHTML = '<div class="text-center text-muted py-5">Tidak ada data ditemukan</div>';
         }
 
         data.forEach(item => {
