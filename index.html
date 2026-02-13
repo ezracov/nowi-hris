@@ -27,11 +27,10 @@
             border-radius: 0 0 20px 20px; 
         }
         
-        .stat-card { background: white; padding: 10px 5px; border-radius: 12px; text-align: center; border: 1px solid #e2e8f0; }
+        .stat-card { background: white; padding: 10px 5px; border-radius: 12px; text-align: center; border: 1px solid #e2e8f0; height: 100%; }
         .stat-value { font-size: 1rem; font-weight: 800; color: var(--primary); display: block; }
         .stat-label { font-size: 0.55rem; color: #64748b; text-transform: uppercase; font-weight: 700; }
         
-        /* Attendance List */
         .attendance-item { background: white; margin-bottom: 10px; padding: 12px; border-radius: 12px; border-left: 5px solid #cbd5e1; }
         .status-Masuk { border-left-color: #10b981; }
         .status-Libur { border-left-color: #94a3b8; }
@@ -45,7 +44,6 @@
 
         #dashboard { display: none; }
         #loading-overlay { position: fixed; top:0; left:0; width:100%; height:100%; background:white; display:flex; align-items:center; justify-content:center; z-index:9999; }
-        
         .login-container { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; }
     </style>
 </head>
@@ -82,15 +80,14 @@
         <div class="container">
             <div class="row g-2 mb-3">
                 <div class="col-3"><div class="stat-card"><span class="stat-value" id="statHadir">0</span><span class="stat-label">Hadir</span></div></div>
-                <div class="col-3"><div class="stat-card"><span class="stat-value" id="statLembur">0</span><span class="stat-label">SPL</span></div></div>
-                <div class="col-3"><div class="stat-card"><span class="stat-value" id="statIndex">0</span><span class="stat-label">Index</span></div></div>
-                <div class="col-3"><div class="stat-card"><span class="stat-value" id="statCuti">0</span><span class="stat-label">Cuti</span></div></div>
+                <div class="col-3"><div class="stat-card"><span class="stat-value text-warning" id="statLembur">0</span><span class="stat-label">SPL</span></div></div>
+                <div class="col-3"><div class="stat-card"><span class="stat-value text-primary" id="statIndex">0</span><span class="stat-label">Index</span></div></div>
+                <div class="col-3"><div class="stat-card"><span class="stat-value text-success" id="statCuti">0</span><span class="stat-label">Sisa Cuti</span></div></div>
             </div>
             
             <div class="input-group input-group-sm">
                 <span class="input-group-text bg-white border-end-0"><i class="fas fa-filter text-muted"></i></span>
-                <select id="periodFilter" class="form-select border-start-0 fw-bold" onchange="filterData()">
-                    </select>
+                <select id="periodFilter" class="form-select border-start-0 fw-bold" onchange="filterData()"></select>
             </div>
         </div>
     </div>
@@ -125,7 +122,7 @@
     function attemptLogin(token) {
         currentUser = employees.find(e => e.token === token);
         if (currentUser) {
-            setupPeriodFilter(token);
+            setupPeriodFilter();
             showDashboard();
         } else {
             document.getElementById('loginError').style.display = 'block';
@@ -133,8 +130,8 @@
         }
     }
 
-    function setupPeriodFilter(token) {
-        const userAtt = attendance.filter(a => a.token === token);
+    function setupPeriodFilter() {
+        const userAtt = attendance.filter(a => a.token === currentUser.token);
         const periods = [...new Set(userAtt.map(a => a.period))].sort().reverse();
         const select = document.getElementById('periodFilter');
         select.innerHTML = periods.map(p => `<option value="${p}">${p}</option>`).join('');
@@ -149,23 +146,28 @@
     }
 
     function filterData() {
-        const period = document.getElementById('periodFilter').value;
-        const filtered = attendance.filter(a => a.token === currentUser.token && a.period === period);
+        const selectedPeriod = document.getElementById('periodFilter').value;
+        const userAttFull = attendance.filter(a => a.token === currentUser.token);
         
-        // Urutan: Older ke Newer (berdasarkan indeks/urutan data di JSON)
-        renderDashboard(filtered);
+        // 1. Hitung Sisa Cuti secara global (Initial - Total Cuti yang diambil)
+        const totalCutiDiambil = userAttFull.filter(a => a.keterangan === "Cuti").length;
+        const sisaCuti = (currentUser["initial Cuti"] || 0) - totalCutiDiambil;
+        document.getElementById('statCuti').innerText = sisaCuti;
+
+        // 2. Filter data untuk list berdasarkan periode yang dipilih
+        const filteredData = userAttFull.filter(a => a.period === selectedPeriod);
+        renderContent(filteredData);
     }
 
-    function renderDashboard(data) {
+    function renderContent(data) {
+        // Update Stats untuk periode terpilih (kecuali sisa cuti yang tetap global)
         document.getElementById('statHadir').innerText = data.filter(a => a.keterangan === "Masuk").length;
         document.getElementById('statLembur').innerText = data.reduce((s, i) => s + (parseFloat(i[" SPL "]) || 0), 0).toFixed(1);
         document.getElementById('statIndex').innerText = data.reduce((s, i) => s + (parseFloat(i[" INDEX "]) || 0), 0).toFixed(1);
-        document.getElementById('statCuti').innerText = currentUser["initial Cuti"];
 
         const list = document.getElementById('attendanceList');
         list.innerHTML = '';
         
-        // Data sudah urut dari awal (Older -> Newer), tidak perlu di .reverse()
         data.forEach(item => {
             const spl = parseFloat(item[" SPL "]) || 0;
             const idx = parseFloat(item[" INDEX "]) || 0;
