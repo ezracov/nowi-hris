@@ -7,78 +7,84 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        :root {
-            --primary: #2563eb;
-            --bg-light: #f8fafc;
-        }
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: var(--bg-light); color: #334155; }
+        :root { --primary: #2563eb; --bg-light: #f1f5f9; }
+        body { font-family: 'Inter', sans-serif; background-color: var(--bg-light); color: #1e293b; }
         .login-container { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; }
-        .card { border: none; border-radius: 15px; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1); }
-        .dashboard-header { background: var(--primary); color: white; padding: 25px 20px; border-radius: 0 0 25px 25px; margin-bottom: 20px; }
-        .stat-card { background: white; padding: 15px; border-radius: 12px; text-align: center; border: 1px solid #e2e8f0; }
-        .stat-value { font-size: 1.2rem; font-weight: 700; color: var(--primary); }
-        .stat-label { font-size: 0.75rem; color: #64748b; text-transform: uppercase; }
-        .attendance-item { background: white; margin-bottom: 10px; padding: 15px; border-radius: 12px; border-left: 5px solid #cbd5e1; }
-        .status-masuk { border-left-color: #22c55e; }
-        .status-libur { border-left-color: #94a3b8; }
-        .status-cuti { border-left-color: #f59e0b; }
-        .time-badge { font-size: 0.85rem; font-weight: 600; padding: 4px 8px; background: #f1f5f9; border-radius: 6px; }
+        .card { border: none; border-radius: 20px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); }
+        .dashboard-header { background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%); color: white; padding: 30px 20px; border-radius: 0 0 30px 30px; }
+        .stat-card { background: white; padding: 12px; border-radius: 15px; text-align: center; border: 1px solid #e2e8f0; height: 100%; }
+        .stat-value { font-size: 1.1rem; font-weight: 800; color: var(--primary); display: block; }
+        .stat-label { font-size: 0.65rem; color: #64748b; text-transform: uppercase; font-weight: 600; }
+        .attendance-item { background: white; margin-bottom: 12px; padding: 15px; border-radius: 15px; border-left: 6px solid #cbd5e1; box-shadow: 0 2px 4px rgba(0,0,0,0.02); }
+        .status-Masuk { border-left-color: #10b981; }
+        .status-Libur { border-left-color: #94a3b8; }
+        .status-Cuti { border-left-color: #3b82f6; }
+        .status-Sakit { border-left-color: #f59e0b; }
+        .time-badge { font-size: 0.8rem; font-weight: 700; padding: 5px 10px; background: #f8fafc; border-radius: 8px; color: #475569; border: 1px solid #e2e8f0; }
         #dashboard { display: none; }
+        #loading-overlay { position: fixed; top:0; left:0; width:100%; height:100%; background:white; display:flex; align-items:center; justify-content:center; z-index:9999; }
     </style>
 </head>
 <body>
 
+<div id="loading-overlay">
+    <div class="spinner-border text-primary" role="status"></div>
+</div>
+
 <div id="login-page" class="login-container">
     <div class="card p-4 w-100" style="max-width: 400px;">
         <div class="text-center mb-4">
-            <i class="fas fa-user-clock fa-3x text-primary mb-3"></i>
-            <h4 class="fw-bold">Masuk Portal</h4>
-            <p class="text-muted small">Gunakan Token Karyawan Anda</p>
+            <div class="mb-3"><i class="fas fa-fingerprint fa-4x text-primary"></i></div>
+            <h4 class="fw-bold">E-Attendance</h4>
+            <p class="text-muted small">Silakan masukkan Token ID Anda</p>
         </div>
-        <div class="mb-3">
-            <input type="text" id="tokenInput" class="form-control form-control-lg text-center" placeholder="Masukkan Token">
-        </div>
-        <button onclick="handleLogin()" class="btn btn-primary w-100 btn-lg shadow-sm">Buka Data</button>
-        <div id="loginError" class="text-danger small text-center mt-3" style="display:none;">Token tidak terdaftar!</div>
+        <input type="text" id="tokenInput" class="form-control form-control-lg text-center mb-3" placeholder="Contoh: 23030007" inputmode="numeric">
+        <button onclick="handleManualLogin()" class="btn btn-primary w-100 btn-lg fw-bold shadow">Buka Dashboard</button>
+        <div id="loginError" class="text-danger small text-center mt-3" style="display:none;">Token tidak ditemukan!</div>
     </div>
 </div>
 
 <div id="dashboard">
-    <div class="dashboard-header d-flex justify-content-between align-items-center">
-        <div>
-            <h5 id="userName" class="mb-0 fw-bold">-</h5>
-            <small id="userJob" class="opacity-75">-</small>
+    <div class="dashboard-header mb-4">
+        <div class="container d-flex justify-content-between align-items-center">
+            <div>
+                <p class="mb-0 opacity-75 small">Selamat Datang,</p>
+                <h5 id="userName" class="fw-bold mb-0">-</h5>
+                <span class="badge bg-white text-primary mt-1" id="userJob">-</span>
+            </div>
+            <button onclick="logout()" class="btn btn-outline-light btn-sm rounded-circle" style="width:40px; height:40px;"><i class="fas fa-power-off"></i></button>
         </div>
-        <button onclick="logout()" class="btn btn-sm btn-light rounded-circle"><i class="fas fa-sign-out-alt text-primary"></i></button>
     </div>
 
     <div class="container mb-4">
         <div class="row g-2">
             <div class="col-4">
                 <div class="stat-card">
-                    <div class="stat-value" id="statHadir">0</div>
-                    <div class="stat-label">Hadir</div>
+                    <span class="stat-value" id="statHadir">0</span>
+                    <span class="stat-label">Hadir</span>
                 </div>
             </div>
             <div class="col-4">
                 <div class="stat-card">
-                    <div class="stat-value text-warning" id="statLembur">0</div>
-                    <div class="stat-label">Lembur</div>
+                    <span class="stat-value text-warning" id="statLembur">0</span>
+                    <span class="stat-label">SPL (Jam)</span>
                 </div>
             </div>
             <div class="col-4">
                 <div class="stat-card">
-                    <div class="stat-value text-success" id="statCuti">0</div>
-                    <div class="stat-label">Sisa Cuti</div>
+                    <span class="stat-value text-success" id="statCuti">0</span>
+                    <span class="stat-label">Sisa Cuti</span>
                 </div>
             </div>
         </div>
     </div>
 
     <div class="container pb-5">
-        <h6 class="fw-bold mb-3">Riwayat Kehadiran (Jan 2026)</h6>
-        <div id="attendanceList">
-            </div>
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h6 class="fw-bold mb-0">Riwayat Absensi</h6>
+            <span class="badge bg-secondary opacity-50">Januari 2026</span>
+        </div>
+        <div id="attendanceList"></div>
     </div>
 </div>
 
@@ -86,8 +92,8 @@
     let employees = [];
     let attendance = [];
 
-    // Mengambil data dari file eksternal
-    async function loadData() {
+    // 1. Load Data JSON
+    async function initApp() {
         try {
             const [empRes, attRes] = await Promise.all([
                 fetch('employees.json'),
@@ -95,86 +101,100 @@
             ]);
             employees = await empRes.json();
             attendance = await attRes.json();
-        } catch (error) {
-            console.error("Gagal memuat data:", error);
-            alert("Gagal memuat file JSON. Pastikan file ada di folder yang sama.");
+            
+            document.getElementById('loading-overlay').style.display = 'none';
+            checkUrlToken(); // Cek token di URL setelah data siap
+        } catch (e) {
+            alert("Error: Pastikan file JSON ada di folder yang sama!");
         }
     }
 
-    // Konversi desimal Excel ke Jam:Menit (misal 0.3125 -> 07:30)
-    function formatExcelTime(val) {
-        if (val === "-" || !val) return "-";
-        const totalMinutes = Math.round(parseFloat(val) * 24 * 60);
-        const hours = Math.floor(totalMinutes / 60);
-        const mins = totalMinutes % 60;
-        return `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
+    // 2. Fungsi Cek Token di URL
+    function checkUrlToken() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const tokenFromUrl = urlParams.get('token');
+        
+        if (tokenFromUrl) {
+            attemptLogin(tokenFromUrl);
+        }
     }
 
-    function handleLogin() {
+    // 3. Logika Login
+    function handleManualLogin() {
         const token = document.getElementById('tokenInput').value;
-        const user = employees.find(e => e.token === token);
+        attemptLogin(token);
+    }
 
+    function attemptLogin(token) {
+        const user = employees.find(e => e.token === token);
         if (user) {
             showDashboard(user);
         } else {
             document.getElementById('loginError').style.display = 'block';
+            document.getElementById('login-page').style.display = 'flex';
         }
     }
 
+    // 4. Tampilkan Dashboard
     function showDashboard(user) {
         document.getElementById('login-page').style.display = 'none';
         document.getElementById('dashboard').style.display = 'block';
 
         document.getElementById('userName').innerText = user.nama;
-        document.getElementById('userJob').innerText = `${user.jabatan} - ${user.bagian}`;
+        document.getElementById('userJob').innerText = user.jabatan;
 
         const userAtt = attendance.filter(a => a.token === user.token);
-        renderStats(user, userAtt);
-        renderAttendance(userAtt);
-    }
-
-    function renderStats(user, userAtt) {
+        
+        // Stats
         const totalHadir = userAtt.filter(a => a.keterangan === "Masuk").length;
         const totalLembur = userAtt.reduce((sum, item) => sum + (parseFloat(item[" SPL "]) || 0), 0);
         
         document.getElementById('statHadir').innerText = totalHadir;
-        document.getElementById('statLembur').innerText = totalLembur;
-        document.getElementById('statCuti').innerText = user["initial Cuti"] || 0;
+        document.getElementById('statLembur').innerText = totalLembur.toFixed(1);
+        document.getElementById('statCuti').innerText = user["initial Cuti"];
+
+        renderList(userAtt);
     }
 
-    function renderAttendance(data) {
-        const container = document.getElementById('attendanceList');
-        container.innerHTML = '';
-
-        data.forEach(item => {
-            const statusClass = item.keterangan === 'Masuk' ? 'status-masuk' : (item.keterangan === 'Cuti' ? 'status-cuti' : 'status-libur');
-            const html = `
-                <div class="attendance-item ${statusClass}">
-                    <div class="d-flex justify-content-between align-items-start">
-                        <div>
-                            <div class="fw-bold">${item.tanggal}</div>
-                            <small class="text-muted">${item.keterangan}</small>
+    function renderList(data) {
+        const list = document.getElementById('attendanceList');
+        list.innerHTML = '';
+        
+        // Sort tanggal terbaru di atas
+        data.reverse().forEach(item => {
+            const card = document.createElement('div');
+            card.className = `attendance-item status-${item.keterangan}`;
+            card.innerHTML = `
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="fw-bold" style="font-size:0.9rem">${item.tanggal}</div>
+                        <small class="text-muted">${item.keterangan} • ${item.schedule}</small>
+                    </div>
+                    <div class="text-end">
+                        <div class="time-badge mb-1">
+                            ${formatTime(item.masuk)} - ${formatTime(item.pulang)}
                         </div>
-                        <div class="text-end">
-                            <div class="time-badge mb-1">
-                                <i class="far fa-clock me-1"></i> ${formatExcelTime(item.masuk)} - ${formatExcelTime(item.pulang)}
-                            </div>
-                            ${item[" SPL "] > 0 ? `<span class="badge bg-warning text-dark">OT: ${item[" SPL "]}h</span>` : ''}
-                        </div>
+                        ${item[" SPL "] > 0 ? `<span class="badge bg-warning text-dark" style="font-size:0.6rem">SPL: ${item[" SPL "]}h</span>` : ''}
                     </div>
                 </div>
             `;
-            container.innerHTML += html;
+            list.appendChild(card);
         });
     }
 
-    function logout() {
-        location.reload();
+    function formatTime(val) {
+        if (val === "-" || !val) return "--:--";
+        const totalMinutes = Math.round(parseFloat(val) * 24 * 60);
+        const h = Math.floor(totalMinutes / 60);
+        const m = totalMinutes % 60;
+        return `${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}`;
     }
 
-    // Inisialisasi data saat halaman dibuka
-    loadData();
-</script>
+    function logout() {
+        window.location.href = window.location.pathname; // Reload tanpa parameter URL
+    }
 
+    initApp();
+</script>
 </body>
 </html>
