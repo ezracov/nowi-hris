@@ -10,7 +10,6 @@
         :root { --primary: #2563eb; --bg-light: #f1f5f9; }
         body { font-family: 'Inter', sans-serif; background-color: var(--bg-light); color: #1e293b; }
         
-        /* Sticky Summary Panel */
         .sticky-summary {
             position: sticky;
             top: 0;
@@ -27,8 +26,11 @@
             border-radius: 0 0 20px 20px; 
         }
         
-        .stat-card { background: white; padding: 10px 5px; border-radius: 12px; text-align: center; border: 1px solid #e2e8f0; height: 100%; transition: transform 0.2s; }
+        .stat-card { background: white; padding: 10px 5px; border-radius: 12px; text-align: center; border: 1px solid #e2e8f0; height: 100%; transition: all 0.2s; }
+        .clickable-card { cursor: pointer; }
+        .clickable-card:hover { border-color: var(--primary); background-color: #f8faff; }
         .clickable-card:active { transform: scale(0.95); }
+        
         .stat-value { font-size: 1rem; font-weight: 800; color: var(--primary); display: block; }
         .stat-label { font-size: 0.55rem; color: #64748b; text-transform: uppercase; font-weight: 700; }
         
@@ -47,8 +49,7 @@
         #loading-overlay { position: fixed; top:0; left:0; width:100%; height:100%; background:white; display:flex; align-items:center; justify-content:center; z-index:9999; }
         .login-container { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; }
         
-        /* Modal Styling */
-        .list-cuti { font-size: 0.85rem; }
+        .filter-info { font-size: 0.75rem; color: #2563eb; font-weight: 600; display: none; }
     </style>
 </head>
 <body>
@@ -83,17 +84,29 @@
 
         <div class="container">
             <div class="row g-2 mb-3">
-                <div class="col-3"><div class="stat-card"><span class="stat-value" id="statHadir">0</span><span class="stat-label">Hadir</span></div></div>
+                <div class="col-3">
+                    <div class="stat-card clickable-card" onclick="filterData()">
+                        <span class="stat-value" id="statHadir">0</span>
+                        <span class="stat-label">Hadir</span>
+                    </div>
+                </div>
                 <div class="col-3"><div class="stat-card"><span class="stat-value text-warning" id="statLembur">0</span><span class="stat-label">SPL</span></div></div>
                 <div class="col-3"><div class="stat-card"><span class="stat-value text-primary" id="statIndex">0</span><span class="stat-label">Index</span></div></div>
                 <div class="col-3">
-                    <div class="stat-card border-success clickable-card" onclick="showCutiDetails()" style="cursor: pointer;">
+                    <div class="stat-card border-success clickable-card" onclick="filterCutiOnly()">
                         <span class="stat-value text-success" id="statCuti">0</span>
-                        <span class="stat-label">Sisa Cuti <i class="fas fa-chevron-right" style="font-size: 0.5rem;"></i></span>
+                        <span class="stat-label">Sisa Cuti</span>
                     </div>
                 </div>
             </div>
             
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <div id="activeFilterNote" class="filter-info"><i class="fas fa-filter me-1"></i> Menampilkan Hanya Cuti</div>
+                <div id="resetFilterBtn" class="filter-info" style="cursor:pointer;" onclick="filterData()">
+                    <u>Reset Filter</u>
+                </div>
+            </div>
+
             <div class="input-group input-group-sm">
                 <span class="input-group-text bg-white border-end-0"><i class="fas fa-calendar-alt text-muted"></i></span>
                 <select id="periodFilter" class="form-select border-start-0 fw-bold" onchange="filterData()"></select>
@@ -106,22 +119,6 @@
     </div>
 </div>
 
-<div class="modal fade" id="cutiModal" tabindex="-1" aria-labelledby="cutiModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered modal-sm">
-        <div class="modal-content" style="border-radius: 15px;">
-            <div class="modal-header border-0 pb-0">
-                <h6 class="modal-title fw-bold" id="cutiModalLabel text-primary">Riwayat Tanggal Cuti</h6>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <div id="cutiDateList" class="list-group list-group-flush list-cuti">
-                    </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
     let employees = [];
     let attendance = [];
@@ -171,49 +168,48 @@
         filterData();
     }
 
-    // Fungsi Baru: Menampilkan Detail Tanggal Cuti
-    function showCutiDetails() {
-        const listContainer = document.getElementById('cutiDateList');
-        listContainer.innerHTML = '';
-        
-        // Ambil semua data cuti user (tidak terbatas periode yang dipilih di filter)
-        const cutiDays = attendance.filter(a => 
+    // Fungsi Baru: Memfilter hanya keterangan Cuti
+    function filterCutiOnly() {
+        const selectedPeriod = document.getElementById('periodFilter').value;
+        const filteredData = attendance.filter(a => 
             a.token === currentUser.token && 
+            a.period === selectedPeriod && 
             a.keterangan.toLowerCase() === 'cuti'
         );
-
-        if (cutiDays.length === 0) {
-            listContainer.innerHTML = '<div class="text-center text-muted py-3">Belum ada riwayat cuti</div>';
-        } else {
-            cutiDays.forEach(item => {
-                const div = document.createElement('div');
-                div.className = 'list-group-item d-flex justify-content-between align-items-center px-0';
-                div.innerHTML = `
-                    <span><i class="far fa-calendar-check text-primary me-2"></i>${item.tanggal}</span>
-                    <span class="badge bg-light text-dark border">${item.schedule}</span>
-                `;
-                listContainer.appendChild(div);
-            });
-        }
-
-        const myModal = new bootstrap.Modal(document.getElementById('cutiModal'));
-        myModal.show();
+        
+        // Tampilkan indikator filter aktif
+        document.getElementById('activeFilterNote').style.display = 'block';
+        document.getElementById('resetFilterBtn').style.display = 'block';
+        
+        renderContent(filteredData);
     }
 
     function filterData() {
+        // Sembunyikan indikator filter
+        document.getElementById('activeFilterNote').style.display = 'none';
+        document.getElementById('resetFilterBtn').style.display = 'none';
+
         const selectedPeriod = document.getElementById('periodFilter').value;
         const filteredData = attendance.filter(a => a.token === currentUser.token && a.period === selectedPeriod);
         renderContent(filteredData);
     }
 
     function renderContent(data) {
-        document.getElementById('statHadir').innerText = data.filter(a => a.keterangan === "Masuk").length;
-        document.getElementById('statLembur').innerText = data.reduce((s, i) => s + (parseFloat(i[" SPL "]) || 0), 0).toFixed(1);
-        document.getElementById('statIndex').innerText = data.reduce((s, i) => s + (parseFloat(i[" INDEX "]) || 0), 0).toFixed(1);
+        // Update statistik hanya berdasarkan periode yang dipilih (bukan hasil filter cuti saja)
+        const selectedPeriod = document.getElementById('periodFilter').value;
+        const baseData = attendance.filter(a => a.token === currentUser.token && a.period === selectedPeriod);
+
+        document.getElementById('statHadir').innerText = baseData.filter(a => a.keterangan === "Masuk").length;
+        document.getElementById('statLembur').innerText = baseData.reduce((s, i) => s + (parseFloat(i[" SPL "]) || 0), 0).toFixed(1);
+        document.getElementById('statIndex').innerText = baseData.reduce((s, i) => s + (parseFloat(i[" INDEX "]) || 0), 0).toFixed(1);
 
         const list = document.getElementById('attendanceList');
         list.innerHTML = '';
         
+        if (data.length === 0) {
+            list.innerHTML = '<div class="text-center text-muted mt-5">Tidak ada data ditemukan</div>';
+        }
+
         data.forEach(item => {
             const spl = parseFloat(item[" SPL "]) || 0;
             const idx = parseFloat(item[" INDEX "]) || 0;
