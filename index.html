@@ -13,21 +13,25 @@
         .card { border: none; border-radius: 20px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); }
         .dashboard-header { background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%); color: white; padding: 30px 20px; border-radius: 0 0 30px 30px; }
         
-        /* Stats Grid */
-        .stat-card { background: white; padding: 12px; border-radius: 15px; text-align: center; border: 1px solid #e2e8f0; height: 100%; transition: 0.3s; }
+        /* Stats */
+        .stat-card { background: white; padding: 12px; border-radius: 15px; text-align: center; border: 1px solid #e2e8f0; height: 100%; }
         .stat-value { font-size: 1.1rem; font-weight: 800; color: var(--primary); display: block; }
-        .stat-label { font-size: 0.6rem; color: #64748b; text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px; }
+        .stat-label { font-size: 0.6rem; color: #64748b; text-transform: uppercase; font-weight: 700; }
         
         /* Attendance List */
-        .attendance-item { background: white; margin-bottom: 12px; padding: 15px; border-radius: 15px; border-left: 6px solid #cbd5e1; box-shadow: 0 2px 4px rgba(0,0,0,0.02); position: relative; }
+        .attendance-item { background: white; margin-bottom: 12px; padding: 15px; border-radius: 15px; border-left: 6px solid #cbd5e1; box-shadow: 0 2px 4px rgba(0,0,0,0.02); }
         .status-Masuk { border-left-color: #10b981; }
         .status-Libur { border-left-color: #94a3b8; }
         .status-Cuti { border-left-color: #3b82f6; }
         .status-Sakit { border-left-color: #f59e0b; }
         
-        .index-tag { position: absolute; top: 0; right: 15px; background: #e0e7ff; color: #4338ca; font-size: 0.65rem; padding: 2px 8px; border-radius: 0 0 8px 8px; font-weight: 700; }
         .time-badge { font-size: 0.8rem; font-weight: 700; padding: 5px 10px; background: #f8fafc; border-radius: 8px; color: #475569; border: 1px solid #e2e8f0; }
         
+        /* Badge styling untuk SPL dan INDEX agar konsisten */
+        .badge-info-row { font-size: 0.65rem; font-weight: 700; padding: 4px 8px; border-radius: 6px; display: inline-block; margin-top: 5px; }
+        .bg-spl { background-color: #fef3c7; color: #92400e; border: 1px solid #fde68a; }
+        .bg-idx { background-color: #e0e7ff; color: #3730a3; border: 1px solid #c7d2fe; }
+
         #dashboard { display: none; }
         #loading-overlay { position: fixed; top:0; left:0; width:100%; height:100%; background:white; display:flex; align-items:center; justify-content:center; z-index:9999; }
     </style>
@@ -46,7 +50,7 @@
         <div class="text-center mb-4">
             <div class="mb-3"><i class="fas fa-fingerprint fa-4x text-primary"></i></div>
             <h4 class="fw-bold">E-Attendance</h4>
-            <p class="text-muted small">Masukkan Token ID atau klik link khusus</p>
+            <p class="text-muted small">Masukkan Token ID Anda</p>
         </div>
         <input type="text" id="tokenInput" class="form-control form-control-lg text-center mb-3" placeholder="Token ID" inputmode="numeric">
         <button onclick="handleManualLogin()" class="btn btn-primary w-100 btn-lg fw-bold shadow">Buka Dashboard</button>
@@ -67,7 +71,7 @@
     </div>
 
     <div class="container mb-4">
-        <div class="row g-2">
+        <div class="row g-2 text-center">
             <div class="col-3">
                 <div class="stat-card">
                     <span class="stat-value" id="statHadir">0</span>
@@ -75,19 +79,19 @@
                 </div>
             </div>
             <div class="col-3">
-                <div class="stat-card border-warning">
+                <div class="stat-card">
                     <span class="stat-value text-warning" id="statLembur">0</span>
                     <span class="stat-label">SPL</span>
                 </div>
             </div>
             <div class="col-3">
-                <div class="stat-card border-info">
-                    <span class="stat-value text-info" id="statIndex">0</span>
+                <div class="stat-card">
+                    <span class="stat-value text-primary" id="statIndex">0</span>
                     <span class="stat-label">Index</span>
                 </div>
             </div>
             <div class="col-3">
-                <div class="stat-card border-success">
+                <div class="stat-card">
                     <span class="stat-value text-success" id="statCuti">0</span>
                     <span class="stat-label">Cuti</span>
                 </div>
@@ -96,7 +100,7 @@
     </div>
 
     <div class="container pb-5">
-        <h6 class="fw-bold mb-3">Log Aktivitas</h6>
+        <h6 class="fw-bold mb-3"><i class="far fa-list-alt me-2"></i>Riwayat Kehadiran</h6>
         <div id="attendanceList"></div>
     </div>
 </div>
@@ -116,14 +120,14 @@
             document.getElementById('loading-overlay').style.display = 'none';
             checkUrlToken();
         } catch (e) {
-            alert("Error: Pastikan file JSON ada di folder yang sama!");
+            alert("Error: Pastikan file JSON ada!");
         }
     }
 
     function checkUrlToken() {
         const urlParams = new URLSearchParams(window.location.search);
-        const tokenFromUrl = urlParams.get('token');
-        if (tokenFromUrl) attemptLogin(tokenFromUrl);
+        const token = urlParams.get('token');
+        if (token) attemptLogin(token);
     }
 
     function handleManualLogin() {
@@ -143,20 +147,14 @@
     function showDashboard(user) {
         document.getElementById('login-page').style.display = 'none';
         document.getElementById('dashboard').style.display = 'block';
-
         document.getElementById('userName').innerText = user.nama;
         document.getElementById('userJob').innerText = user.jabatan;
 
         const userAtt = attendance.filter(a => a.token === user.token);
         
-        // Perhitungan Stats
-        const totalHadir = userAtt.filter(a => a.keterangan === "Masuk").length;
-        const totalLembur = userAtt.reduce((sum, item) => sum + (parseFloat(item[" SPL "]) || 0), 0);
-        const totalIndex = userAtt.reduce((sum, item) => sum + (parseFloat(item[" INDEX "]) || 0), 0);
-        
-        document.getElementById('statHadir').innerText = totalHadir;
-        document.getElementById('statLembur').innerText = totalLembur.toFixed(1);
-        document.getElementById('statIndex').innerText = totalIndex.toFixed(1);
+        document.getElementById('statHadir').innerText = userAtt.filter(a => a.keterangan === "Masuk").length;
+        document.getElementById('statLembur').innerText = userAtt.reduce((s, i) => s + (parseFloat(i[" SPL "]) || 0), 0).toFixed(1);
+        document.getElementById('statIndex').innerText = userAtt.reduce((s, i) => s + (parseFloat(i[" INDEX "]) || 0), 0).toFixed(1);
         document.getElementById('statCuti').innerText = user["initial Cuti"];
 
         renderList(userAtt);
@@ -166,13 +164,13 @@
         const list = document.getElementById('attendanceList');
         list.innerHTML = '';
         
-        // Clone dan Reverse agar tanggal terbaru di atas
         [...data].reverse().forEach(item => {
-            const indexValue = parseFloat(item[" INDEX "]) || 0;
+            const spl = parseFloat(item[" SPL "]) || 0;
+            const idx = parseFloat(item[" INDEX "]) || 0;
+            
             const card = document.createElement('div');
             card.className = `attendance-item status-${item.keterangan}`;
             card.innerHTML = `
-                ${indexValue > 0 ? `<div class="index-tag">INDEX: ${indexValue}</div>` : ''}
                 <div class="d-flex justify-content-between align-items-center">
                     <div>
                         <div class="fw-bold" style="font-size:0.9rem">${item.tanggal}</div>
@@ -182,7 +180,10 @@
                         <div class="time-badge mb-1">
                             ${formatTime(item.masuk)} - ${formatTime(item.pulang)}
                         </div>
-                        ${item[" SPL "] > 0 ? `<span class="badge bg-warning text-dark" style="font-size:0.6rem">SPL: ${item[" SPL "]}h</span>` : ''}
+                        <div class="d-flex justify-content-end gap-1">
+                            ${spl > 0 ? `<span class="badge-info-row bg-spl">SPL: ${spl}h</span>` : ''}
+                            ${idx > 0 ? `<span class="badge-info-row bg-idx">IDX: ${idx}</span>` : ''}
+                        </div>
                     </div>
                 </div>
             `;
@@ -193,14 +194,10 @@
     function formatTime(val) {
         if (val === "-" || !val || isNaN(val)) return "--:--";
         const totalMinutes = Math.round(parseFloat(val) * 24 * 60);
-        const h = Math.floor(totalMinutes / 60);
-        const m = totalMinutes % 60;
-        return `${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}`;
+        return `${Math.floor(totalMinutes / 60).toString().padStart(2,'0')}:${(totalMinutes % 60).toString().padStart(2,'0')}`;
     }
 
-    function logout() {
-        window.location.href = window.location.pathname;
-    }
+    function logout() { window.location.href = window.location.pathname; }
 
     initApp();
 </script>
