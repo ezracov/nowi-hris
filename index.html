@@ -56,12 +56,12 @@
 <div id="login-page" class="login-container">
     <div class="card border-0 shadow-lg p-4 w-100" style="max-width: 400px; border-radius: 20px;">
         <div class="text-center mb-4">
-            <i class="fas fa-fingerprint fa-3x text-primary mb-3"></i>
-            <h4 class="fw-bold">Employee Portal</h4>
+            <i class="fas fa-id-badge fa-3x text-primary mb-3"></i>
+            <h4 class="fw-bold">Login Portal</h4>
         </div>
-        <input type="text" id="tokenInput" class="form-control form-control-lg text-center mb-3" placeholder="Token ID">
+        <input type="text" id="tokenInput" class="form-control form-control-lg text-center mb-3" placeholder="Token ID" inputmode="numeric">
         <button onclick="handleManualLogin()" class="btn btn-primary w-100 btn-lg fw-bold shadow-sm">Masuk</button>
-        <div id="loginError" class="text-danger small text-center mt-3" style="display:none;">Token tidak valid!</div>
+        <div id="loginError" class="text-danger small text-center mt-3" style="display:none;">Token tidak ditemukan!</div>
     </div>
 </div>
 
@@ -73,7 +73,7 @@
                     <h6 id="userName" class="fw-bold mb-0">-</h6>
                     <small id="userJob" class="opacity-75" style="font-size: 0.7rem;">-</small>
                 </div>
-                <button onclick="logout()" class="btn btn-link text-white p-0"><i class="fas fa-sign-out-alt"></i></button>
+                <button onclick="logout()" class="btn btn-link text-white p-0"><i class="fas fa-power-off"></i></button>
             </div>
         </div>
 
@@ -82,11 +82,11 @@
                 <div class="col-3"><div class="stat-card"><span class="stat-value" id="statHadir">0</span><span class="stat-label">Hadir</span></div></div>
                 <div class="col-3"><div class="stat-card"><span class="stat-value text-warning" id="statLembur">0</span><span class="stat-label">SPL</span></div></div>
                 <div class="col-3"><div class="stat-card"><span class="stat-value text-primary" id="statIndex">0</span><span class="stat-label">Index</span></div></div>
-                <div class="col-3"><div class="stat-card"><span class="stat-value text-success" id="statCuti">0</span><span class="stat-label">Sisa Cuti</span></div></div>
+                <div class="col-3"><div class="stat-card border-success"><span class="stat-value text-success" id="statCuti">0</span><span class="stat-label">Sisa Cuti</span></div></div>
             </div>
             
             <div class="input-group input-group-sm">
-                <span class="input-group-text bg-white border-end-0"><i class="fas fa-filter text-muted"></i></span>
+                <span class="input-group-text bg-white border-end-0"><i class="fas fa-calendar-alt text-muted"></i></span>
                 <select id="periodFilter" class="form-select border-start-0 fw-bold" onchange="filterData()"></select>
             </div>
         </div>
@@ -142,25 +142,18 @@
         document.getElementById('dashboard').style.display = 'block';
         document.getElementById('userName').innerText = currentUser.nama;
         document.getElementById('userJob').innerText = currentUser.jabatan;
+        // Set sisa cuti langsung dari database employee (statis)
+        document.getElementById('statCuti').innerText = currentUser["initial Cuti"];
         filterData();
     }
 
     function filterData() {
         const selectedPeriod = document.getElementById('periodFilter').value;
-        const userAttFull = attendance.filter(a => a.token === currentUser.token);
-        
-        // 1. Hitung Sisa Cuti secara global (Initial - Total Cuti yang diambil)
-        const totalCutiDiambil = userAttFull.filter(a => a.keterangan === "Cuti").length;
-        const sisaCuti = (currentUser["initial Cuti"] || 0) - totalCutiDiambil;
-        document.getElementById('statCuti').innerText = sisaCuti;
-
-        // 2. Filter data untuk list berdasarkan periode yang dipilih
-        const filteredData = userAttFull.filter(a => a.period === selectedPeriod);
+        const filteredData = attendance.filter(a => a.token === currentUser.token && a.period === selectedPeriod);
         renderContent(filteredData);
     }
 
     function renderContent(data) {
-        // Update Stats untuk periode terpilih (kecuali sisa cuti yang tetap global)
         document.getElementById('statHadir').innerText = data.filter(a => a.keterangan === "Masuk").length;
         document.getElementById('statLembur').innerText = data.reduce((s, i) => s + (parseFloat(i[" SPL "]) || 0), 0).toFixed(1);
         document.getElementById('statIndex').innerText = data.reduce((s, i) => s + (parseFloat(i[" INDEX "]) || 0), 0).toFixed(1);
@@ -168,6 +161,7 @@
         const list = document.getElementById('attendanceList');
         list.innerHTML = '';
         
+        // Tetap Older ke Newer (Urutan asli JSON)
         data.forEach(item => {
             const spl = parseFloat(item[" SPL "]) || 0;
             const idx = parseFloat(item[" INDEX "]) || 0;
